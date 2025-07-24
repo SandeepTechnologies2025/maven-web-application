@@ -1,0 +1,22 @@
+node{
+properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '5')), pipelineTriggers([pollSCM('* * * * *')])])
+  def MavenHome=tool name:"Maven 3.9.10"
+  
+stage ('checkout code'){
+    git branch: 'development', credentialsId: 'daa83ea9-d918-420e-8e9a-7330f17cebab', url: 'https://github.com/SandeepTechnologies2025/maven-web-application.git'
+}
+stage ('Build'){
+sh "${MavenHome}/bin/mvn clean package"
+}
+stage('ExecuteSonarQubeReport'){
+sh "${MavenHome}/bin/mvn sonar:sonar"
+}
+stage('uploadaArtifactintoNexusRepo'){
+sh "${MavenHome}/bin/mvn deploy"
+}
+stage('DeployintoTomcatServer'){
+sshagent(['9c920184-69e3-4a7d-b939-a94840e99e0b']) {
+sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@52.77.245.76:/opt/apache-tomcat-9.0.107/webapps/"    
+}
+}
+}
